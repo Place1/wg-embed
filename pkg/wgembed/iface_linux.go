@@ -27,7 +27,7 @@ func (wg *WireGuardInterface) Up() error {
 	return nil
 }
 
-func (wg *WireGuardInterface) SetIP(ip string) error {
+func (wg *WireGuardInterface) setIP(ip string) error {
 	link, err := netlink.LinkByName(wg.Name())
 	if err != nil {
 		return errors.Wrap(err, "failed to find wireguard interface")

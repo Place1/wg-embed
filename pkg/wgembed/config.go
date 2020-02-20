@@ -146,6 +146,9 @@ func (c *ConfigFile) load() error {
 }
 
 func (c *ConfigFile) Config() wgtypes.Config {
+	if c.wgconfig == nil {
+		c.load()
+	}
 	return *c.wgconfig
 }
 

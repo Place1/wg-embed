@@ -93,7 +93,7 @@ func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
 		return errors.Wrap(err, "failed to configure wireguard")
 	}
 
-	if err := wg.SetIP(config.Interface.Address); err != nil {
+	if err := wg.setIP(config.Interface.Address); err != nil {
 		return errors.Wrap(err, "failed to set interface ip address")
 	}
 
