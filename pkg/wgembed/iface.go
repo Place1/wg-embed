@@ -82,6 +82,11 @@ func (wg *WireGuardInterface) LoadConfigFile(path string) error {
 }
 
 func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
+	c, err := config.Config()
+	if err != nil {
+		return errors.Wrap(err, "invalid wireguard config")
+	}
+
 	wg.config = config
 
 	client, err := wgctrl.New()
@@ -89,7 +94,7 @@ func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
 		return errors.Wrap(err, "failed to create wg client")
 	}
 
-	if err := client.ConfigureDevice(wg.Name(), config.Config()); err != nil {
+	if err := client.ConfigureDevice(wg.Name(), *c); err != nil {
 		return errors.Wrap(err, "failed to configure wireguard")
 	}
 

@@ -145,11 +145,13 @@ func (c *ConfigFile) load() error {
 	return nil
 }
 
-func (c *ConfigFile) Config() wgtypes.Config {
+func (c *ConfigFile) Config() (*wgtypes.Config, error) {
 	if c.wgconfig == nil {
-		c.load()
+		if err := c.load(); err != nil {
+			return nil, err
+		}
 	}
-	return *c.wgconfig
+	return c.wgconfig, nil
 }
 
 func (c *ConfigFile) String() string {
