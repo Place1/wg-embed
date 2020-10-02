@@ -1,30 +1,14 @@
 // +build darwin
 
-package wgconnect
+package wgembed
 
-// import (
-// 	"os/exec"
+import "log"
 
-// 	"github.com/pkg/errors"
-// )
+func (wg *WireGuardInterfaceImpl) Up() error {
+	log.Println("wg.Up() is a no-op on macos")
+	return nil
+}
 
-// func ifaceUp(name string, ip string) error {
-// 	// bring the interface up
-// 	cmd := exec.Command("ifconifg", name, "up")
-// 	if err := cmd.Run(); err != nil {
-// 		return errors.Wrap(err, "ifconfig up command failed")
-// 	}
-
-// 	// set it's ip address
-// 	cmd = exec.Command("ifconfig", name, "inet", ip, ip, "alias")
-// 	if err := cmd.Run(); err != nil {
-// 		return errors.Wrap(err, "ifconfig inet command failed")
-// 	}
-
-// 	return nil
-// }
-
-// func ifaceDefaultRoute(name string) error {
-// 	cmd := exec.Command("route", "-q", "-n", "add", "-inet", "0.0.0.0/0", "-interface", name)
-// 	return cmd.Run()
-// }
+func (wg *WireGuardInterfaceImpl) setIP(ip string) error {
+	return nil
+}

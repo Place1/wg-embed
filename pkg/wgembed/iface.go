@@ -20,10 +20,20 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-// WireGuardInterface represents a wireguard
+type WireGuardInterface interface {
+	LoadConfig(config *ConfigFile) error
+	AddPeer(publicKey string, addressCIDR string) error
+	ListPeers() ([]wgtypes.Peer, error)
+	RemovePeer(publicKey string) error
+	PublicKey() (string, error)
+	Close() error
+}
+
+// WireGuardInterfaceImpl represents a wireguard
 // network interface
-type WireGuardInterface struct {
+type WireGuardInterfaceImpl struct {
 	device *device.Device
+	client *wgctrl.Client
 	uapi   net.Listener
 	name   string
 	config *ConfigFile
@@ -31,10 +41,16 @@ type WireGuardInterface struct {
 
 // New creates a wireguard interface and starts the userspace
 // wireguard configuration api
-func New(interfaceName string) (*WireGuardInterface, error) {
-	wg := &WireGuardInterface{
+func New(interfaceName string) (WireGuardInterface, error) {
+	wg := &WireGuardInterfaceImpl{
 		name: interfaceName,
 	}
+
+	client, err := wgctrl.New()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create wg client")
+	}
+	wg.client = client
 
 	tun, err := tun.CreateTUN(wg.name, device.DefaultMTU)
 	if err != nil {
@@ -73,7 +89,7 @@ func New(interfaceName string) (*WireGuardInterface, error) {
 
 // LoadConfig reads the given wireguard config file
 // and configured the interface
-func (wg *WireGuardInterface) LoadConfigFile(path string) error {
+func (wg *WireGuardInterfaceImpl) LoadConfigFile(path string) error {
 	config, err := ReadConfig(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load config file")
@@ -81,7 +97,7 @@ func (wg *WireGuardInterface) LoadConfigFile(path string) error {
 	return wg.LoadConfig(config)
 }
 
-func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
+func (wg *WireGuardInterfaceImpl) LoadConfig(config *ConfigFile) error {
 	c, err := config.Config()
 	if err != nil {
 		return errors.Wrap(err, "invalid wireguard config")
@@ -89,12 +105,7 @@ func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
 
 	wg.config = config
 
-	client, err := wgctrl.New()
-	if err != nil {
-		return errors.Wrap(err, "failed to create wg client")
-	}
-
-	if err := client.ConfigureDevice(wg.Name(), *c); err != nil {
+	if err := wg.client.ConfigureDevice(wg.Name(), *c); err != nil {
 		return errors.Wrap(err, "failed to configure wireguard")
 	}
 
@@ -111,37 +122,34 @@ func (wg *WireGuardInterface) LoadConfig(config *ConfigFile) error {
 
 // Config returns the loaded wireguard config file
 // can return nil if no config has been loaded
-func (wg *WireGuardInterface) Config() *ConfigFile {
+func (wg *WireGuardInterfaceImpl) Config() *ConfigFile {
 	return wg.config
 }
 
 // Device returns the wgtypes Device, this type contains
 // runtime infomation about the wireguard interface
-func (wg *WireGuardInterface) Device() (*wgtypes.Device, error) {
-	c, err := wgctrl.New()
-	if err != nil {
-		return nil, err
-	}
-	return c.Device(wg.Name())
+func (wg *WireGuardInterfaceImpl) Device() (*wgtypes.Device, error) {
+	return wg.client.Device(wg.Name())
 }
 
 // Wait will return a channel that signals when the
 // wireguard interface is stopped
-func (wg *WireGuardInterface) Wait() chan struct{} {
+func (wg *WireGuardInterfaceImpl) Wait() chan struct{} {
 	return wg.device.Wait()
 }
 
 // Close will stop and clean up both the wireguard
 // interface and userspace configuration api
-func (wg *WireGuardInterface) Close() error {
+func (wg *WireGuardInterfaceImpl) Close() error {
 	if err := wg.uapi.Close(); err != nil {
 		return err
 	}
 	wg.device.Close()
+	wg.client.Close()
 	return nil
 }
 
 // Name returns the real wireguard interface name e.g. wg0
-func (wg *WireGuardInterface) Name() string {
+func (wg *WireGuardInterfaceImpl) Name() string {
 	return wg.name
 }
