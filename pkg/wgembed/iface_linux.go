@@ -8,7 +8,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func (wg *WireGuardInterface) Up() error {
+func (wg *WireGuardInterfaceImpl) Up() error {
 	link, err := netlink.LinkByName(wg.Name())
 	if err != nil {
 		return errors.Wrap(err, "failed to find wireguard interface")
@@ -27,7 +27,7 @@ func (wg *WireGuardInterface) Up() error {
 	return nil
 }
 
-func (wg *WireGuardInterface) setIP(ip string) error {
+func (wg *WireGuardInterfaceImpl) setIP(ip string) error {
 	link, err := netlink.LinkByName(wg.Name())
 	if err != nil {
 		return errors.Wrap(err, "failed to find wireguard interface")
