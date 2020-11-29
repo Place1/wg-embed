@@ -14,19 +14,19 @@ func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR string) 
 	if err != nil {
 		return errors.Wrapf(err, "bad public key %v", publicKey)
 	}
+
 	_, allowedIPs, err := net.ParseCIDR(addressCIDR)
 	if err != nil || allowedIPs == nil {
 		return errors.Wrap(err, "bad CIDR value for AllowedIPs")
 	}
-	if wg.HasPeer(key.String()) {
-		wg.RemovePeer(key.String())
-	}
+
 	return wg.configure(func(config *wgtypes.Config) error {
 		config.ReplacePeers = false
 		config.Peers = []wgtypes.PeerConfig{
 			{
-				PublicKey:  key,
-				AllowedIPs: []net.IPNet{*allowedIPs},
+				PublicKey:         key,
+				AllowedIPs:        []net.IPNet{*allowedIPs},
+				ReplaceAllowedIPs: true,
 			},
 		}
 		return nil
