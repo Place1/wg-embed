@@ -3,6 +3,7 @@ package wgembed
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -15,9 +16,14 @@ func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR string) 
 		return errors.Wrapf(err, "bad public key %v", publicKey)
 	}
 
-	_, allowedIPs, err := net.ParseCIDR(addressCIDR)
-	if err != nil || allowedIPs == nil {
-		return errors.Wrap(err, "bad CIDR value for AllowedIPs")
+	addresses := strings.Split(addressCIDR, ",")
+	parsedAddresses := make([]net.IPNet, 0, len(addresses))
+	for _, addr := range addresses {
+		_, allowedIPs, err := net.ParseCIDR(strings.TrimSpace(addr))
+		if err != nil || allowedIPs == nil {
+			return errors.Wrap(err, "bad CIDR value for AllowedIPs")
+		}
+		parsedAddresses = append(parsedAddresses, *allowedIPs)
 	}
 
 	return wg.configure(func(config *wgtypes.Config) error {
@@ -25,7 +31,7 @@ func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR string) 
 		config.Peers = []wgtypes.PeerConfig{
 			{
 				PublicKey:         key,
-				AllowedIPs:        []net.IPNet{*allowedIPs},
+				AllowedIPs:        parsedAddresses,
 				ReplaceAllowedIPs: true,
 			},
 		}
