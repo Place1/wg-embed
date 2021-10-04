@@ -9,15 +9,22 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR string) error {
+// AddPeer adds a new peer to the interface.
+// The subnet sizes in addressCIDR should be /32 for IPv4 and /128 for IPv6,
+// as the whole subnet will be added to AllowedIPs for this device.
+func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR []string) error {
 	key, err := wgtypes.ParseKey(publicKey)
 	if err != nil {
 		return errors.Wrapf(err, "bad public key %v", publicKey)
 	}
 
-	_, allowedIPs, err := net.ParseCIDR(addressCIDR)
-	if err != nil || allowedIPs == nil {
-		return errors.Wrap(err, "bad CIDR value for AllowedIPs")
+	parsedAddresses := make([]net.IPNet, 0, len(addressCIDR))
+	for _, addr := range addressCIDR {
+		_, allowedIPs, err := net.ParseCIDR(addr)
+		if err != nil || allowedIPs == nil {
+			return errors.Wrap(err, "bad CIDR value for AllowedIPs")
+		}
+		parsedAddresses = append(parsedAddresses, *allowedIPs)
 	}
 
 	return wg.configure(func(config *wgtypes.Config) error {
@@ -25,7 +32,7 @@ func (wg *WireGuardInterfaceImpl) AddPeer(publicKey string, addressCIDR string) 
 		config.Peers = []wgtypes.PeerConfig{
 			{
 				PublicKey:         key,
-				AllowedIPs:        []net.IPNet{*allowedIPs},
+				AllowedIPs:        parsedAddresses,
 				ReplaceAllowedIPs: true,
 			},
 		}

@@ -19,7 +19,7 @@ type ConfigFile struct {
 
 type IfaceConfig struct {
 	PrivateKey string
-	Address    string
+	Address    []string
 	ListenPort *int
 	DNS        []string
 }
