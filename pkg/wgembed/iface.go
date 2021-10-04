@@ -22,7 +22,7 @@ import (
 
 type WireGuardInterface interface {
 	LoadConfig(config *ConfigFile) error
-	AddPeer(publicKey string, addressCIDR string) error
+	AddPeer(publicKey string, addressCIDR []string) error
 	ListPeers() ([]wgtypes.Peer, error)
 	RemovePeer(publicKey string) error
 	PublicKey() (string, error)
@@ -87,8 +87,8 @@ func New(interfaceName string) (WireGuardInterface, error) {
 	return wg, nil
 }
 
-// LoadConfig reads the given wireguard config file
-// and configured the interface
+// LoadConfigFile reads the given wireguard config file
+// and configures the interface
 func (wg *WireGuardInterfaceImpl) LoadConfigFile(path string) error {
 	config, err := ReadConfig(path)
 	if err != nil {
@@ -97,6 +97,8 @@ func (wg *WireGuardInterfaceImpl) LoadConfigFile(path string) error {
 	return wg.LoadConfig(config)
 }
 
+// LoadConfig takes the given wireguard config object
+// and configures the interface
 func (wg *WireGuardInterfaceImpl) LoadConfig(config *ConfigFile) error {
 	c, err := config.Config()
 	if err != nil {
@@ -109,8 +111,10 @@ func (wg *WireGuardInterfaceImpl) LoadConfig(config *ConfigFile) error {
 		return errors.Wrap(err, "failed to configure wireguard")
 	}
 
-	if err := wg.setIP(config.Interface.Address); err != nil {
-		return errors.Wrap(err, "failed to set interface ip address")
+	for _, addr := range config.Interface.Address {
+		if err := wg.setIP(addr); err != nil {
+			return errors.Wrap(err, "failed to set interface ip address")
+		}
 	}
 
 	if err := wg.Up(); err != nil {
