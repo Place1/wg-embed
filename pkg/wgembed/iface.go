@@ -11,7 +11,6 @@ package wgembed
 
 import (
 	"net"
-	"strings"
 
 	"github.com/pkg/errors"
 	"golang.zx2c4.com/wireguard/device"
@@ -23,7 +22,7 @@ import (
 
 type WireGuardInterface interface {
 	LoadConfig(config *ConfigFile) error
-	AddPeer(publicKey string, addressCIDR string) error
+	AddPeer(publicKey string, addressCIDR []string) error
 	ListPeers() ([]wgtypes.Peer, error)
 	RemovePeer(publicKey string) error
 	PublicKey() (string, error)
@@ -112,9 +111,8 @@ func (wg *WireGuardInterfaceImpl) LoadConfig(config *ConfigFile) error {
 		return errors.Wrap(err, "failed to configure wireguard")
 	}
 
-	addresses := strings.Split(config.Interface.Address, ",")
-	for _, addr := range addresses {
-		if err := wg.setIP(strings.TrimSpace(addr)); err != nil {
+	for _, addr := range config.Interface.Address {
+		if err := wg.setIP(addr); err != nil {
 			return errors.Wrap(err, "failed to set interface ip address")
 		}
 	}
