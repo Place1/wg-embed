@@ -78,7 +78,7 @@ func (c *ConfigFile) parse(config []byte) error {
 		section := f.Sections()[1]
 
 		switch section.Name() {
-		case ini.DEFAULT_SECTION:
+		case ini.DefaultSection:
 			// nothing to do here (case so that we don't warn for it)
 		case "Interface":
 			if err := section.MapTo(&c.Interface); err != nil {
