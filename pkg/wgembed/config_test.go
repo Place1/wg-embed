@@ -24,7 +24,10 @@ func TestReadConfig(t *testing.T) {
 					Address:    []string{"10.44.0.1/24", "fd48:4c4:7aa9::1/64"},
 					DNS:        []string{},
 				},
-				Peers:    []PeerConfig{{PublicKey: "gysKSkCS/VeAyHIAVtf8B/sbQnEd5FYogtj7kO4d4zY=", AllowedIPs: []string{"10.44.0.2/32", "fd48:4c4:7aa9::2/128"}}},
+				Peers: []PeerConfig{
+					{PublicKey: "gysKSkCS/VeAyHIAVtf8B/sbQnEd5FYogtj7kO4d4zY=", AllowedIPs: []string{"10.44.0.2/32", "fd48:4c4:7aa9::2/128"}},
+					{PublicKey: "bcEwHLic4PW9O3qECsbUWuD4PeU3NfRl5Cmiz+e/p3o=", AllowedIPs: []string{"10.44.0.3/32", "fd48:4c4:7aa9::3/128"}},
+				},
 				wgconfig: nil,
 			},
 			false,
