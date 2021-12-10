@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 /* SPDX-License-Identifier: MIT
@@ -10,9 +11,11 @@
 package wgembed
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
+	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
 	"golang.zx2c4.com/wireguard/ipc"
 	"golang.zx2c4.com/wireguard/tun"
@@ -52,7 +55,7 @@ func New(interfaceName string) (WireGuardInterface, error) {
 	}
 	wg.client = client
 
-	tun, err := tun.CreateTUN(wg.name, device.DefaultMTU)
+	tunDevice, err := tun.CreateTUN(wg.name, device.DefaultMTU)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TUN device")
 	}
@@ -63,7 +66,8 @@ func New(interfaceName string) (WireGuardInterface, error) {
 		return nil, errors.Wrap(err, "UAPI listen error")
 	}
 
-	wg.device = device.NewDevice(tun, device.NewLogger(device.LogLevelError, wg.name))
+	logger := device.NewLogger(device.LogLevelError, fmt.Sprintf("(%s) ", interfaceName))
+	wg.device = device.NewDevice(tunDevice, conn.NewDefaultBind(), logger)
 
 	errs := make(chan error)
 
@@ -75,12 +79,12 @@ func New(interfaceName string) (WireGuardInterface, error) {
 
 	go func() {
 		for {
-			conn, err := uapi.Accept()
+			connection, err := uapi.Accept()
 			if err != nil {
 				errs <- err
 				return
 			}
-			go wg.device.IpcHandle(conn)
+			go wg.device.IpcHandle(connection)
 		}
 	}()
 

@@ -13,8 +13,8 @@ import (
 
 type ConfigFile struct {
 	Interface IfaceConfig
-	Peers     []PeerConfig
-	wgconfig  *wgtypes.Config
+	Peers     []PeerConfig    `ini:"Peer,nonunique"`
+	wgconfig  *wgtypes.Config `ini:"-"`
 }
 
 type IfaceConfig struct {
@@ -56,43 +56,15 @@ func ReadConfig(path string) (*ConfigFile, error) {
 }
 
 func (c *ConfigFile) parse(config []byte) error {
-	// this is harder than it needs to be because of this bug
-	// https://github.com/go-ini/ini/issues/190
-
-	sections := []string{}
-	for _, s := range strings.Split(string(config), "[") {
-		if s != "" {
-			sections = append(sections, "["+s)
-		}
+	opt := ini.LoadOptions{AllowNonUniqueSections: true}
+	f, err := ini.LoadSources(opt, config)
+	if err != nil {
+		return errors.Wrap(err, "failed to read wireguard config file")
 	}
 
-	for _, s := range sections {
-		if s == "" {
-			continue
-		}
-
-		f, err := ini.Load([]byte(s))
-		if err != nil {
-			return errors.Wrap(err, "failed to read wireguard config file")
-		}
-		section := f.Sections()[1]
-
-		switch section.Name() {
-		case ini.DEFAULT_SECTION:
-			// nothing to do here (case so that we don't warn for it)
-		case "Interface":
-			if err := section.MapTo(&c.Interface); err != nil {
-				return errors.Wrap(err, "failed to parse Interface config")
-			}
-		case "Peer":
-			peer := PeerConfig{}
-			if err := section.MapTo(&peer); err != nil {
-				return errors.Wrap(err, "failed to parse Interface config")
-			}
-			c.Peers = append(c.Peers, peer)
-		default:
-			logrus.Warnf("skipping unknown config section: %s", section.Name())
-		}
+	err = f.MapTo(c)
+	if err != nil {
+		return errors.Wrap(err, "failed to map wireguard config file")
 	}
 
 	return nil
